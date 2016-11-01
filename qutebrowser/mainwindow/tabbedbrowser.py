@@ -111,6 +111,7 @@ class TabbedBrowser(tabwidget.TabWidget):
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self._undo_stack = []
         self._filter = signalfilter.SignalFilter(win_id, self)
+        self.previous_tabs_stack = []
         self._now_focused = None
         self.search_text = None
         self.search_options = {}
@@ -231,6 +232,9 @@ class TabbedBrowser(tabwidget.TabWidget):
             return
 
         self._remove_tab(tab, add_undo=add_undo)
+
+        self.previous_tabs_stack = []
+        self.previous_tabs_stack.append(self.currentIndex())
 
         if count == 1:  # We just closed the last tab above.
             if last_close == 'close':
@@ -563,6 +567,11 @@ class TabbedBrowser(tabwidget.TabWidget):
         if idx == -1 or self.shutting_down:
             # closing the last tab (before quitting) or shutting down
             return
+        if (len(self.previous_tabs_stack) < 2):
+            self.previous_tabs_stack.append(self.currentIndex())
+        else:
+            self.previous_tabs_stack[0] = self.previous_tabs_stack[1]
+            self.previous_tabs_stack[1] = self.currentIndex()
         tab = self.widget(idx)
         self.load_prepared_history(idx)
         log.modes.debug("Current tab changed, focusing {!r}".format(tab))

@@ -828,6 +828,14 @@ class CommandDispatcher:
             raise cmdexc.CommandError("Nothing to undo!")
 
     @cmdutils.register(instance='command-dispatcher', scope='window')
+    def tab_alternate(self):
+        """Switch to the previously selected tab."""
+        if len(self._tabbed_browser.previous_tabs_stack) == 2:
+            self.tab_focus(self._tabbed_browser.previous_tabs_stack[0] + 1)
+        else:
+            raise cmdexc.CommandError("No alternate tab")
+
+    @cmdutils.register(instance='command-dispatcher', scope='window')
     @cmdutils.argument('count', count=True)
     def tab_prev(self, count=1):
         """Switch to the previous tab, or switch [count] tabs back.
