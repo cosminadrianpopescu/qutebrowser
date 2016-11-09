@@ -45,11 +45,11 @@ import qutebrowser.resources
 from qutebrowser.completion.models import instances as completionmodels
 from qutebrowser.commands import cmdutils, runners, cmdexc
 from qutebrowser.config import style, config, websettings, configexc
-from qutebrowser.browser import urlmarks, adblock, history, browsertab
-from qutebrowser.browser.webkit import cookies, cache, downloads
-from qutebrowser.browser.webkit.network import (webkitqutescheme, proxy,
-                                                networkmanager)
-from qutebrowser.mainwindow import mainwindow
+from qutebrowser.browser import (urlmarks, adblock, history, browsertab,
+                                 downloads)
+from qutebrowser.browser.webkit import cookies, cache
+from qutebrowser.browser.webkit.network import networkmanager
+from qutebrowser.mainwindow import mainwindow, prompt
 from qutebrowser.misc import (readline, ipc, savemanager, sessions,
                               crashsignal, earlyinit)
 from qutebrowser.misc import utilcmds  # pylint: disable=unused-import
@@ -332,7 +332,7 @@ def _open_quickstart(args):
         tabbed_browser = objreg.get('tabbed-browser', scope='window',
                                     window='last-focused')
         tabbed_browser.tabopen(
-            QUrl('http://www.qutebrowser.org/quickstart.html'))
+            QUrl('https://www.qutebrowser.org/quickstart.html'))
         state_config['general']['quickstart-done'] = '1'
 
 
@@ -375,7 +375,9 @@ def _init_modules(args, crash_handler):
         args: The argparse namespace.
         crash_handler: The CrashHandler instance.
     """
-    # pylint: disable=too-many-statements
+    log.init.debug("Initializing prompts...")
+    prompt.init()
+
     log.init.debug("Initializing save manager...")
     save_manager = savemanager.SaveManager(qApp)
     objreg.register('save-manager', save_manager)
@@ -402,10 +404,6 @@ def _init_modules(args, crash_handler):
     log.init.debug("Initializing sessions...")
     sessions.init(qApp)
 
-    log.init.debug("Initializing js-bridge...")
-    js_bridge = webkitqutescheme.JSBridge(qApp)
-    objreg.register('js-bridge', js_bridge)
-
     log.init.debug("Initializing websettings...")
     websettings.init()
 
@@ -421,9 +419,6 @@ def _init_modules(args, crash_handler):
     log.init.debug("Initializing bookmarks...")
     bookmark_manager = urlmarks.BookmarkManager(qApp)
     objreg.register('bookmark-manager', bookmark_manager)
-
-    log.init.debug("Initializing proxy...")
-    proxy.init()
 
     log.init.debug("Initializing cookies...")
     cookie_jar = cookies.CookieJar(qApp)
@@ -443,8 +438,6 @@ def _init_modules(args, crash_handler):
         os.environ['QT_WAYLAND_DISABLE_WINDOWDECORATION'] = '1'
     else:
         os.environ.pop('QT_WAYLAND_DISABLE_WINDOWDECORATION', None)
-    temp_downloads = downloads.TempDownloadManager(qApp)
-    objreg.register('temporary-downloads', temp_downloads)
     # Init backend-specific stuff
     browsertab.init(args)
 
@@ -654,13 +647,7 @@ class Quitter:
             session_manager.save(sessions.default, last_window=last_window,
                                  load_next_time=True)
 
-        deferrer = False
-        for win_id in objreg.window_registry:
-            prompter = objreg.get('prompter', None, scope='window',
-                                  window=win_id)
-            if prompter is not None and prompter.shutdown():
-                deferrer = True
-        if deferrer:
+        if prompt.prompt_queue.shutdown():
             # If shutdown was called while we were asking a question, we're in
             # a still sub-eventloop (which gets quit now) and not in the main
             # one.
@@ -719,7 +706,7 @@ class Quitter:
             atexit.register(shutil.rmtree, self._args.basedir,
                             ignore_errors=True)
         # Delete temp download dir
-        objreg.get('temporary-downloads').cleanup()
+        downloads.temp_download_manager.cleanup()
         # If we don't kill our custom handler here we might get segfaults
         log.destroy.debug("Deactivating message handler...")
         qInstallMessageHandler(None)
@@ -748,6 +735,7 @@ class Application(QApplication):
 
     Attributes:
         _args: ArgumentParser instance.
+        _last_focus_object: The last focused object's repr.
     """
 
     new_window = pyqtSignal(mainwindow.MainWindow)
@@ -758,6 +746,8 @@ class Application(QApplication):
         Args:
             Argument namespace from argparse.
         """
+        self._last_focus_object = None
+
         qt_args = qtutils.get_args(args)
         log.init.debug("Qt arguments: {}, based on {}".format(qt_args, args))
         super().__init__(qt_args)
@@ -774,7 +764,10 @@ class Application(QApplication):
     @pyqtSlot(QObject)
     def on_focus_object_changed(self, obj):
         """Log when the focus object changed."""
-        log.misc.debug("Focus object changed: {!r}".format(obj))
+        output = repr(obj)
+        if self._last_focus_object != output:
+            log.misc.debug("Focus object changed: {}".format(output))
+        self._last_focus_object = output
 
     def __repr__(self):
         return utils.get_repr(self)

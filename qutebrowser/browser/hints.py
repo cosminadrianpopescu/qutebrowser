@@ -265,9 +265,8 @@ class HintActions:
         if text[0] not in modeparsers.STARTCHARS:
             raise HintingError("Invalid command text '{}'.".format(text))
 
-        bridge = objreg.get('message-bridge', scope='window',
-                            window=self._win_id)
-        bridge.set_cmd_text(text)
+        cmd = objreg.get('status-command', scope='window', window=self._win_id)
+        cmd.set_cmd_text(text)
 
     def download(self, elem, context):
         """Download a hint URL.
@@ -284,14 +283,10 @@ class HintActions:
         else:
             prompt = None
 
-        # FIXME:qtwebengine get a proper API for this
-        # pylint: disable=protected-access
-        qnam = elem._elem.webFrame().page().networkAccessManager()
-        # pylint: enable=protected-access
-
-        download_manager = objreg.get('download-manager', scope='window',
-                                      window=self._win_id)
-        download_manager.get(url, qnam=qnam, prompt_download_directory=prompt)
+        # FIXME:qtwebengine do this with QtWebEngine downloads?
+        download_manager = objreg.get('qtnetwork-download-manager',
+                                      scope='window', window=self._win_id)
+        download_manager.get(url, prompt_download_directory=prompt)
 
     def call_userscript(self, elem, context):
         """Call a userscript from a hint.
@@ -663,11 +658,6 @@ class HintManager(QObject):
         tab = tabbed_browser.currentWidget()
         if tab is None:
             raise cmdexc.CommandError("No WebView available yet!")
-        if (tab.backend == usertypes.Backend.QtWebEngine and
-                target == Target.download):
-            message.error("The download target is not available yet with "
-                          "QtWebEngine.")
-            return
 
         mode_manager = objreg.get('mode-manager', scope='window',
                                   window=self._win_id)

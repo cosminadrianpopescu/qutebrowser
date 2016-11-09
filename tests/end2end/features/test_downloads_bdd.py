@@ -21,18 +21,13 @@ import os
 import sys
 import shlex
 
-import pytest
 import pytest_bdd as bdd
 bdd.scenarios('downloads.feature')
 
 
-pytestmark = pytest.mark.qtwebengine_todo("Downloads not implemented yet",
-                                          run=False)
-
-
 PROMPT_MSG = ("Asking question <qutebrowser.utils.usertypes.Question "
-              "default={!r} mode=<PromptMode.download: 5> "
-              "text='Save file to:'>, *")
+              "default={!r} mode=<PromptMode.download: 5> text=* "
+              "title='Save file to:'>, *")
 
 
 @bdd.given("I set up a temporary download dir")

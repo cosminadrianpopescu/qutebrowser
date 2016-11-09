@@ -779,13 +779,13 @@ Duplicate the current tab.
 
 [[tab-close]]
 === tab-close
-Syntax: +:tab-close [*--left*] [*--right*] [*--opposite*]+
+Syntax: +:tab-close [*--prev*] [*--next*] [*--opposite*]+
 
 Close the current/[count]th tab.
 
 ==== optional arguments
-* +*-l*+, +*--left*+: Force selecting the tab to the left of the current tab.
-* +*-r*+, +*--right*+: Force selecting the tab to the right of the current tab.
+* +*-p*+, +*--prev*+: Force selecting the tab before the current tab.
+* +*-n*+, +*--next*+: Force selecting the tab after the current tab.
 * +*-o*+, +*--opposite*+: Force selecting the tab in the opposite direction of what's configured in 'tabs->select-on-remove'.
 
 
@@ -841,13 +841,13 @@ How many tabs to switch forward.
 
 [[tab-only]]
 === tab-only
-Syntax: +:tab-only [*--left*] [*--right*]+
+Syntax: +:tab-only [*--prev*] [*--next*]+
 
 Close all tabs except for the current one.
 
 ==== optional arguments
-* +*-l*+, +*--left*+: Keep tabs to the left of the current.
-* +*-r*+, +*--right*+: Keep tabs to the right of the current.
+* +*-p*+, +*--prev*+: Keep tabs before the current.
+* +*-n*+, +*--next*+: Keep tabs after the current.
 
 [[tab-prev]]
 === tab-prev
@@ -977,6 +977,7 @@ How many steps to zoom out.
 |<<move-to-start-of-prev-block,move-to-start-of-prev-block>>|Move the cursor or selection to the start of previous block.
 |<<open-editor,open-editor>>|Open an external editor with the currently selected form field.
 |<<prompt-accept,prompt-accept>>|Accept the current prompt.
+|<<prompt-item-focus,prompt-item-focus>>|Shift the focus of the prompt file completion menu to another item.
 |<<prompt-open-download,prompt-open-download>>|Immediately open a download.
 |<<repeat-command,repeat-command>>|Repeat the last executed command.
 |<<rl-backward-char,rl-backward-char>>|Move back a character.
@@ -1228,6 +1229,15 @@ Accept the current prompt.
 ==== positional arguments
 * +'value'+: If given, uses this value instead of the entered one. For boolean prompts, "yes"/"no" are accepted as value.
 
+
+[[prompt-item-focus]]
+=== prompt-item-focus
+Syntax: +:prompt-item-focus 'which'+
+
+Shift the focus of the prompt file completion menu to another item.
+
+==== positional arguments
+* +'which'+: 'next', 'prev'
 
 [[prompt-open-download]]
 === prompt-open-download

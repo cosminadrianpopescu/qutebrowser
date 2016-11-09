@@ -44,8 +44,7 @@ import pygments.formatters
 from qutebrowser.commands import userscripts, cmdexc, cmdutils, runners
 from qutebrowser.config import config, configexc
 from qutebrowser.browser import (urlmarks, browsertab, inspector, navigate,
-                                 webelem)
-from qutebrowser.browser.webkit import downloads
+                                 webelem, downloads)
 try:
     from qutebrowser.browser.webkit import mhtml
 except ImportError:
@@ -180,12 +179,12 @@ class CommandDispatcher:
             raise cmdexc.CommandError("Last focused tab vanished!")
         self._set_current_index(idx)
 
-    def _get_selection_override(self, left, right, opposite):
+    def _get_selection_override(self, prev, next_, opposite):
         """Helper function for tab_close to get the tab to select.
 
         Args:
-            left: Force selecting the tab to the left of the current tab.
-            right: Force selecting the tab to the right of the current tab.
+            prev: Force selecting the tab before the current tab.
+            next_: Force selecting the tab after the current tab.
             opposite: Force selecting the tab in the opposite direction of
                       what's configured in 'tabs->select-on-remove'.
 
@@ -193,10 +192,10 @@ class CommandDispatcher:
             QTabBar.SelectLeftTab, QTabBar.SelectRightTab, or None if no change
             should be made.
         """
-        cmdutils.check_exclusive((left, right, opposite), 'lro')
-        if left:
+        cmdutils.check_exclusive((prev, next_, opposite), 'pno')
+        if prev:
             return QTabBar.SelectLeftTab
-        elif right:
+        elif next_:
             return QTabBar.SelectRightTab
         elif opposite:
             conf_selection = config.get('tabs', 'select-on-remove')
@@ -207,7 +206,7 @@ class CommandDispatcher:
             elif conf_selection == QTabBar.SelectPreviousTab:
                 raise cmdexc.CommandError(
                     "-o is not supported with 'tabs->select-on-remove' set to "
-                    "'previous'!")
+                    "'last-used'!")
             else:  # pragma: no cover
                 raise ValueError("Invalid select-on-remove value "
                                  "{!r}!".format(conf_selection))
@@ -215,12 +214,12 @@ class CommandDispatcher:
 
     @cmdutils.register(instance='command-dispatcher', scope='window')
     @cmdutils.argument('count', count=True)
-    def tab_close(self, left=False, right=False, opposite=False, count=None):
+    def tab_close(self, prev=False, next_=False, opposite=False, count=None):
         """Close the current/[count]th tab.
 
         Args:
-            left: Force selecting the tab to the left of the current tab.
-            right: Force selecting the tab to the right of the current tab.
+            prev: Force selecting the tab before the current tab.
+            next_: Force selecting the tab after the current tab.
             opposite: Force selecting the tab in the opposite direction of
                       what's configured in 'tabs->select-on-remove'.
             count: The tab index to close, or None
@@ -229,7 +228,7 @@ class CommandDispatcher:
         if tab is None:
             return
         tabbar = self._tabbed_browser.tabBar()
-        selection_override = self._get_selection_override(left, right,
+        selection_override = self._get_selection_override(prev, next_,
                                                           opposite)
         if selection_override is None:
             self._tabbed_browser.close_tab(tab)
@@ -802,20 +801,20 @@ class CommandDispatcher:
         message.info("Zoom level: {}%".format(level))
 
     @cmdutils.register(instance='command-dispatcher', scope='window')
-    def tab_only(self, left=False, right=False):
+    def tab_only(self, prev=False, next_=False):
         """Close all tabs except for the current one.
 
         Args:
-            left: Keep tabs to the left of the current.
-            right: Keep tabs to the right of the current.
+            prev: Keep tabs before the current.
+            next_: Keep tabs after the current.
         """
-        cmdutils.check_exclusive((left, right), 'lr')
+        cmdutils.check_exclusive((prev, next_), 'pn')
         cur_idx = self._tabbed_browser.currentIndex()
         assert cur_idx != -1
 
         for i, tab in enumerate(self._tabbed_browser.widgets()):
-            if (i == cur_idx or (left and i < cur_idx) or
-                    (right and i > cur_idx)):
+            if (i == cur_idx or (prev and i < cur_idx) or
+                    (next_ and i > cur_idx)):
                 continue
             else:
                 self._tabbed_browser.close_tab(tab)
@@ -1146,7 +1145,7 @@ class CommandDispatcher:
     def quickmark_save(self):
         """Save the current page as a quickmark."""
         quickmark_manager = objreg.get('quickmark-manager')
-        quickmark_manager.prompt_save(self._win_id, self._current_url())
+        quickmark_manager.prompt_save(self._current_url())
 
     @cmdutils.register(instance='command-dispatcher', scope='window',
                        maxsplit=0)
@@ -1304,8 +1303,7 @@ class CommandDispatcher:
         except inspector.WebInspectorError as e:
             raise cmdexc.CommandError(e)
 
-    @cmdutils.register(instance='command-dispatcher', scope='window',
-                       backend=usertypes.Backend.QtWebKit)
+    @cmdutils.register(instance='command-dispatcher', scope='window')
     @cmdutils.argument('dest_old', hide=True)
     def download(self, url=None, dest_old=None, *, mhtml_=False, dest=None):
         """Download a given URL, or current page if no URL given.
@@ -1327,8 +1325,9 @@ class CommandDispatcher:
                                           " download.")
             dest = dest_old
 
-        download_manager = objreg.get('download-manager', scope='window',
-                                      window=self._win_id)
+        # FIXME:qtwebengine do this with the QtWebEngine download manager?
+        download_manager = objreg.get('qtnetwork-download-manager',
+                                      scope='window', window=self._win_id)
         if url:
             if mhtml_:
                 raise cmdexc.CommandError("Can only download the current page"
@@ -1338,21 +1337,16 @@ class CommandDispatcher:
             if dest is None:
                 target = None
             else:
-                target = usertypes.FileDownloadTarget(dest)
+                target = downloads.FileDownloadTarget(dest)
             download_manager.get(url, target=target)
         elif mhtml_:
             self._download_mhtml(dest)
         else:
-            tab = self._current_widget()
-            # FIXME:qtwebengine have a proper API for this
-            # pylint: disable=protected-access
-            qnam = tab._widget.page().networkAccessManager()
-            # pylint: enable=protected-access
             if dest is None:
                 target = None
             else:
-                target = usertypes.FileDownloadTarget(dest)
-            download_manager.get(self._current_url(), qnam=qnam, target=target)
+                target = downloads.FileDownloadTarget(dest)
+            download_manager.get(self._current_url(), target=target)
 
     def _download_mhtml(self, dest=None):
         """Download the current page as an MHTML file, including all assets.
@@ -1361,18 +1355,23 @@ class CommandDispatcher:
             dest: The file path to write the download to.
         """
         tab = self._current_widget()
+        if tab.backend == usertypes.Backend.QtWebEngine:
+            raise cmdexc.CommandError("Download --mhtml is not implemented "
+                                      "with QtWebEngine yet")
+
         if dest is None:
             suggested_fn = self._current_title() + ".mht"
             suggested_fn = utils.sanitize_filename(suggested_fn)
-            filename, q = downloads.ask_for_filename(
-                suggested_fn, self._win_id, parent=tab,
-            )
+
+            filename = downloads.immediate_download_path()
             if filename is not None:
                 mhtml.start_download_checked(filename, tab=tab)
             else:
-                q.answered.connect(functools.partial(
+                question = downloads.get_filename_question(
+                    suggested_filename=suggested_fn, url=tab.url(), parent=tab)
+                question.answered.connect(functools.partial(
                     mhtml.start_download_checked, tab=tab))
-                q.ask()
+                message.global_bridge.ask(question, blocking=False)
         else:
             mhtml.start_download_checked(dest, tab=tab)
 
@@ -1548,8 +1547,6 @@ class CommandDispatcher:
             text: The text to insert.
         """
         tab = self._current_widget()
-        if not tab.has_js():
-            raise cmdexc.CommandError("This command needs javascript enabled.")
 
         def _insert_text_cb(elem):
             if elem is None:
