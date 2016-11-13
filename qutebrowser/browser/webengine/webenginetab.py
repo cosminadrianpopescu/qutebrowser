@@ -460,6 +460,7 @@ class WebEngineTab(browsertab.AbstractTab):
         self.zoom = WebEngineZoom(win_id=win_id, parent=self)
         self.search = WebEngineSearch(parent=self)
         self.printing = WebEnginePrinting()
+        self._focus_widget = None
         self.elements = WebEngineElements(self)
         self._set_widget(widget)
         self._connect_signals()
@@ -622,4 +623,6 @@ class WebEngineTab(browsertab.AbstractTab):
             log.stub('contentsSizeChanged, on Qt < 5.7')
 
     def _event_target(self):
-        return self._widget.focusProxy()
+        if not self._focus_widget:
+            self._focus_widget = self._widget.focusProxy()
+        return self._focus_widget
