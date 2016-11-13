@@ -74,8 +74,8 @@ PERFECT_FILES = [
 
     ('tests/unit/browser/test_signalfilter.py',
         'qutebrowser/browser/signalfilter.py'),
-    ('tests/unit/browser/test_shared.py',
-        'qutebrowser/browser/shared.py'),
+    (None,
+        'qutebrowser/browser/webkit/certificateerror.py'),
     # ('tests/unit/browser/test_tab.py',
     #     'qutebrowser/browser/tab.py'),
 
@@ -163,7 +163,10 @@ PERFECT_FILES = [
 
 
 # 100% coverage because of end2end tests, but no perfect unit tests yet.
-WHITELISTED_FILES = ['qutebrowser/browser/webkit/webkitinspector.py']
+WHITELISTED_FILES = [
+    'qutebrowser/browser/webkit/webkitinspector.py',
+    'qutebrowser/keyinput/macros.py',
+]
 
 
 class Skipped(Exception):

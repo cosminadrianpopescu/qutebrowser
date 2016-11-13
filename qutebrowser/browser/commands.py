@@ -743,8 +743,8 @@ class CommandDispatcher:
             message.info("{} {} yanked to {}".format(
                 len(s), "char" if len(s) == 1 else "chars", target))
             if not keep:
-                modeman.maybe_leave(self._win_id, KeyMode.caret,
-                                    "yank selected")
+                modeman.leave(self._win_id, KeyMode.caret, "yank selected",
+                              maybe=True)
 
     @cmdutils.register(instance='command-dispatcher', scope='window')
     @cmdutils.argument('count', count=True)
@@ -2001,7 +2001,7 @@ class CommandDispatcher:
                 tab.send_event(release_event)
 
     @cmdutils.register(instance='command-dispatcher', scope='window',
-                       debug=True)
+                       debug=True, backend=usertypes.Backend.QtWebKit)
     def debug_clear_ssl_errors(self):
         """Clear remembered SSL error answers."""
         self._current_widget().clear_ssl_errors()
