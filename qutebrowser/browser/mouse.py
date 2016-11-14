@@ -96,7 +96,6 @@ class MouseEventFilter(QObject):
             return True
 
         self._ignore_wheel_event = True
-        self._mousepress_opentarget(e)
         self._tab.elements.find_at_pos(e.pos(), self._mousepress_insertmode_cb)
 
         return False
@@ -151,9 +150,8 @@ class MouseEventFilter(QObject):
         else:
             log.mouse.debug("Clicked non-editable element!")
             if config.get('input', 'auto-leave-insert-mode'):
-                modeman.maybe_leave(self._tab.win_id,
-                                    usertypes.KeyMode.insert,
-                                    'click')
+                modeman.leave(self._tab.win_id, usertypes.KeyMode.insert,
+                              'click', maybe=True)
 
     def _mouserelease_insertmode(self):
         """If we have an insertmode check scheduled, handle it."""
@@ -174,9 +172,8 @@ class MouseEventFilter(QObject):
             else:
                 log.mouse.debug("Clicked non-editable element (delayed)!")
                 if config.get('input', 'auto-leave-insert-mode'):
-                    modeman.maybe_leave(self._tab.win_id,
-                                        usertypes.KeyMode.insert,
-                                        'click-delayed')
+                    modeman.leave(self._tab.win_id, usertypes.KeyMode.insert,
+                                  'click-delayed', maybe=True)
 
         self._tab.elements.find_focused(mouserelease_insertmode_cb)
 
@@ -198,27 +195,6 @@ class MouseEventFilter(QObject):
                 self._tab.history.forward()
             else:
                 message.error("At end of history.")
-
-    def _mousepress_opentarget(self, e):
-        """Set the open target when something was clicked.
-
-        Args:
-            e: The QMouseEvent.
-        """
-        if e.button() == Qt.MidButton or e.modifiers() & Qt.ControlModifier:
-            background_tabs = config.get('tabs', 'background-tabs')
-            if e.modifiers() & Qt.ShiftModifier:
-                background_tabs = not background_tabs
-            if background_tabs:
-                target = usertypes.ClickTarget.tab_bg
-            else:
-                target = usertypes.ClickTarget.tab
-            self._tab.data.open_target = target
-            log.mouse.debug("Ctrl/Middle click, setting target: {}".format(
-                target))
-        else:
-            self._tab.data.open_target = usertypes.ClickTarget.normal
-            log.mouse.debug("Normal click, setting normal target")
 
     def eventFilter(self, obj, event):
         """Filter events going to a QWeb(Engine)View."""

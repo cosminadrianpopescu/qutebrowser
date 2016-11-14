@@ -233,7 +233,7 @@ ClickTarget = enum('ClickTarget', ['normal', 'tab', 'tab_bg', 'window',
 # Key input modes
 KeyMode = enum('KeyMode', ['normal', 'hint', 'command', 'yesno', 'prompt',
                            'insert', 'passthrough', 'caret', 'set_mark',
-                           'jump_mark'])
+                           'jump_mark', 'record_macro', 'run_macro'])
 
 
 # Available command completions
@@ -403,3 +403,20 @@ class Timer(QTimer):
             super().start(msec)
         else:
             super().start()
+
+
+class AbstractCertificateErrorWrapper:
+
+    """A wrapper over an SSL/certificate error."""
+
+    def __init__(self, error):
+        self._error = error
+
+    def __str__(self):
+        raise NotImplementedError
+
+    def __repr__(self):
+        raise NotImplementedError
+
+    def is_overridable(self):
+        raise NotImplementedError

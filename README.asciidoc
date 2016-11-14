@@ -147,9 +147,9 @@ Contributors, sorted by the number of commits in descending order:
 * Daniel Schadt
 * Ryan Roden-Corrent
 * Jakub Klinkovský
+* Jan Verbeek
 * Antoni Boucher
 * Lamar Pavel
-* Jan Verbeek
 * Marshall Lochbaum
 * Bruno Oliveira
 * Alexander Cogneau
@@ -208,6 +208,7 @@ Contributors, sorted by the number of commits in descending order:
 * Jussi Timperi
 * Fritz Reichwald
 * Brian Jackson
+* thuck
 * sbinix
 * neeasade
 * jnphilipp

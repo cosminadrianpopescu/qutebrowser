@@ -50,7 +50,8 @@ class HintingError(Exception):
 def on_mode_entered(mode, win_id):
     """Stop hinting when insert mode was entered."""
     if mode == usertypes.KeyMode.insert:
-        modeman.maybe_leave(win_id, usertypes.KeyMode.hint, 'insert mode')
+        modeman.leave(win_id, usertypes.KeyMode.hint, 'insert mode',
+                      maybe=True)
 
 
 class HintLabel(QLabel):
@@ -565,6 +566,10 @@ class HintManager(QObject):
 
     def _start_cb(self, elems):
         """Initialize the elements and labels based on the context set."""
+        if elems is None:
+            message.error("There was an error while getting hint elements")
+            return
+
         filterfunc = webelem.FILTERS.get(self._context.group, lambda e: True)
         elems = [e for e in elems if filterfunc(e)]
         if not elems:
@@ -859,8 +864,8 @@ class HintManager(QObject):
             raise ValueError("No suitable handler found!")
 
         if not self._context.rapid:
-            modeman.maybe_leave(self._win_id, usertypes.KeyMode.hint,
-                                'followed')
+            modeman.leave(self._win_id, usertypes.KeyMode.hint, 'followed',
+                          maybe=True)
         else:
             # Reset filtering
             self.filter_hints(None)
