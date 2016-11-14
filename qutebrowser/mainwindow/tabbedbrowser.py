@@ -231,10 +231,14 @@ class TabbedBrowser(tabwidget.TabWidget):
         if last_close == 'ignore' and count == 1:
             return
 
+        process = False
+        if self.indexOf(tab) == self.currentIndex:
+            process = True
         self._remove_tab(tab, add_undo=add_undo)
 
-        self.previous_tabs_stack = []
-        self.previous_tabs_stack.append(self.currentIndex())
+        if process:
+            self.previous_tabs_stack = []
+            self.previous_tabs_stack.append(self.currentIndex())
 
         if count == 1:  # We just closed the last tab above.
             if last_close == 'close':
@@ -569,7 +573,7 @@ class TabbedBrowser(tabwidget.TabWidget):
             return
         if (len(self.previous_tabs_stack) < 2):
             self.previous_tabs_stack.append(self.currentIndex())
-        else:
+        elif self.previous_tabs_stack[1] != self.currentIndex():
             self.previous_tabs_stack[0] = self.previous_tabs_stack[1]
             self.previous_tabs_stack[1] = self.currentIndex()
         tab = self.widget(idx)
