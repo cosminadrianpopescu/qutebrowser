@@ -304,6 +304,7 @@ class PromptContainer(QWidget):
             usertypes.PromptMode.user_pwd: AuthenticationPrompt,
             usertypes.PromptMode.download: DownloadFilenamePrompt,
             usertypes.PromptMode.alert: AlertPrompt,
+            usertypes.PromptMode.upload: FilenamePrompt,
         }
         klass = classes[question.mode]
         prompt = klass(question)

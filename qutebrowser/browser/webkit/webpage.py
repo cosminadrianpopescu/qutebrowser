@@ -175,6 +175,24 @@ class BrowserPage(QWebPage):
             errpage.encoding = 'utf-8'
             return True
 
+    def _get_upload_prompt(self, suggestedFile):
+        tabbed_browser = objreg.get('tabbed-browser', scope='window', window=self._win_id)
+        tab = tabbed_browser.currentWidget()
+
+        question = usertypes.Question(tab)
+        question.title = "File to upload:"
+        question.text = "Please select a file to upload"
+        question.mode = usertypes.PromptMode.upload
+        question.default = suggestedFile
+        return question
+
+    def chooseFile(self, _frame, suggestedFile):
+        question = self._get_upload_prompt(suggestedFile)
+        question.answered.connect(functools.partial(
+            self.upload_file, files=None))
+        message.global_bridge.ask(question, blocking=True)
+        return self._uploaded_file
+
     def _handle_multiple_files(self, info, files):
         """Handle uploading of multiple files.
 
@@ -191,9 +209,17 @@ class BrowserPage(QWebPage):
         suggested_file = ""
         if info.suggestedFileNames:
             suggested_file = info.suggestedFileNames[0]
-        files.fileNames, _ = QFileDialog.getOpenFileNames(None, None,
-                                                          suggested_file)
+        question = self._get_upload_prompt(suggested_file)
+        question.answered.connect(functools.partial(
+            self.upload_file, files=files))
+        message.global_bridge.ask(question, blocking=True)
         return True
+
+    def upload_file(self, selectedFile, files):
+        if not files:
+            self._uploaded_file = selectedFile
+        else:
+            files.fileNames = [selectedFile]
 
     def _show_pdfjs(self, reply):
         """Show the reply with pdfjs."""
