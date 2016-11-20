@@ -222,7 +222,7 @@ class NeighborList(collections.abc.Sequence):
 
 # The mode of a Question.
 PromptMode = enum('PromptMode', ['yesno', 'text', 'user_pwd', 'alert',
-                                 'download'])
+                                 'download', 'upload'])
 
 
 # Where to open a clicked link.
